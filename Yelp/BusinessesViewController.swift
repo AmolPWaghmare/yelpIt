@@ -8,7 +8,7 @@
 
 import UIKit
 
-class BusinessesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, FiltersViewControllerDelegate {
+class BusinessesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, FiltersViewControllerDelegate, UISearchBarDelegate {
     
     var businesses: [Business]!
     
@@ -26,10 +26,16 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
                 self.tableView.reloadData()
             }
         )
-        
-        
+        initSearchBar()
     }
     
+    func initSearchBar() {
+        let searchBar = UISearchBar();
+        searchBar.showsCancelButton = false
+        searchBar.delegate = self
+        searchBar.placeholder = "Go, Yelp it!"
+        self.navigationItem.titleView = searchBar
+    }
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
