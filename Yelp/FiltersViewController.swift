@@ -30,6 +30,8 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
     var categories : [[String: String]]!
     var categorySwitch = [Int: Bool] ()
     
+    var sectionsExpanded = [Int: Bool] ()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -41,16 +43,15 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
         sortBy = getSortBy()
         categories = getCategories()
         
+        sectionsExpanded[1] = false
+        sectionsExpanded[2] = false
+        
         tableView.reloadData()
-
-        // Do any additional setup after loading the view.
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
-    
     
     @IBAction func onCancel(_ sender: Any) {
         dismiss(animated: true, completion: nil)
@@ -72,8 +73,8 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
         }
         
         filters["deals"] = dealsFilter
-        filters["distance"] = distance[distanceIndex]["code"]
-        filters["sortBy"] = Int(sortBy[sortIndex]["code"]!)
+        filters["distance"] = distance[distanceIndex]["distance"]
+        filters["sortBy"] = Int(sortBy[sortIndex]["yelpCode"]!)
         
         delegate?.FiltersViewController?(FiltersViewController: self, didUpdateFilters: filters)
         
@@ -85,69 +86,37 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        
-        switch section {
-            case 0:
-                return "Deals"
-            case 1:
-                return "Distance"
-            case 2:
-                return "Sort By"
-            case 3:
-                return "Category"
-            default:
-                return ""
-        }
+        return getSectionData(section: section, row: 0)["titleForHeaderInSection"] as? String
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        switch section {
-            case 0:
-                return deals.count
-            case 1:
-                return distance.count
-            case 2:
-                return sortBy.count
-            case 3:
-                return categories.count
-            default:
-                return 0
-        }
-        
+        return (getSectionData(section: section, row: 0)["numberOfRowsInSection"] as? Int)!
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        let section = indexPath.section
+        let row = indexPath.row
+        return getSectionData(section: section, row: row)["heightForRowAt"] as! CGFloat
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "SimpleFilterCell", for: indexPath) as! SimpleFilterCell
         
-        switch indexPath.section {
-            case 0:
-                cell.filterLabel.text = deals[indexPath.row]["name"]
-                cell.filterSwitch.isOn = dealsFilter
-            case 1:
-                cell.filterLabel.text = distance[indexPath.row]["name"]
-                if distanceIndex == indexPath.row {
-                    cell.filterSwitch.isOn = true
-                } else {
-                    cell.filterSwitch.isOn = false
-                }
-            case 2:
-                cell.filterLabel.text = sortBy[indexPath.row]["name"]
-                if sortIndex == indexPath.row {
-                    cell.filterSwitch.isOn = true
-                } else {
-                    cell.filterSwitch.isOn = false
-                }
-            case 3:
-                cell.filterLabel.text = categories[indexPath.row]["name"]
-                cell.filterSwitch.isOn = categorySwitch[indexPath.row] ?? false
-            default:
-                cell.filterLabel.text = ""
-                cell.filterSwitch.isOn = false
-        }
+        let section = indexPath.section
+        let row = indexPath.row
+        let sectionData = getSectionData(section: section, row: row)
+        cell.filterLabel.text = sectionData["cellForRowAt_Text"] as? String
+        cell.filterSwitch.isOn = (sectionData["cellForRowAt_Switch"] as? Bool)!
         
         cell.delegate = self
-        return cell
         
+        return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        //Expand Section
+        sectionsExpanded[indexPath.section] = true
+        tableView.reloadSections(IndexSet(integer: indexPath.section), with: .automatic)
     }
     
     func SimpleFilterCell(SimpleFilterCell: SimpleFilterCell, didChangeValue value: Bool) {
@@ -166,7 +135,73 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
             default:
                 return
         }
-
+        
+        //Collapse Section
+        sectionsExpanded[section] = false
+        tableView.reloadSections(IndexSet(integer: section), with: .automatic)
+    }
+    
+    func getSectionData(section: Int, row: Int) -> [String : Any] {
+        var sectionObj = [String : Any]()
+        
+        switch section {
+            case 0:
+                sectionObj["numberOfRowsInSection"] = deals.count
+                sectionObj["titleForHeaderInSection"] = nil
+                sectionObj["heightForRowAt"] = UITableViewAutomaticDimension
+                sectionObj["cellForRowAt_Text"] = deals[row]["name"]
+                sectionObj["cellForRowAt_Switch"] = dealsFilter
+            
+            case 1:
+                sectionObj["numberOfRowsInSection"] = distance.count
+                sectionObj["titleForHeaderInSection"] = "Distance"
+                
+                if (sectionsExpanded[section] == false && distanceIndex != row) {
+                    sectionObj["heightForRowAt"] = CGFloat(0.0)
+                } else {
+                    sectionObj["heightForRowAt"] = UITableViewAutomaticDimension
+                }
+                sectionObj["cellForRowAt_Text"] = distance[row]["name"]
+                
+                if distanceIndex == row {
+                    sectionObj["cellForRowAt_Switch"] = true
+                } else {
+                    sectionObj["cellForRowAt_Switch"] = false
+                }
+            
+            case 2:
+                sectionObj["numberOfRowsInSection"] = sortBy.count
+                sectionObj["titleForHeaderInSection"] = "Sort By"
+                
+                if (sectionsExpanded[section] == false && sortIndex != row) {
+                    sectionObj["heightForRowAt"] = CGFloat(0.0)
+                } else {
+                    sectionObj["heightForRowAt"] = UITableViewAutomaticDimension
+                }
+                sectionObj["cellForRowAt_Text"] = sortBy[row]["name"]
+                
+                if sortIndex == row {
+                    sectionObj["cellForRowAt_Switch"] = true
+                } else {
+                    sectionObj["cellForRowAt_Switch"] = false
+                }
+            
+            case 3:
+                sectionObj["numberOfRowsInSection"] = categories.count
+                sectionObj["titleForHeaderInSection"] = "Category"
+                sectionObj["heightForRowAt"] = UITableViewAutomaticDimension
+                sectionObj["cellForRowAt_Text"] = categories[row]["name"]
+                sectionObj["cellForRowAt_Switch"] = categorySwitch[row] ?? false
+            
+            default:
+                sectionObj["numberOfRowsInSection"] = 0
+                sectionObj["titleForHeaderInSection"] = nil
+                sectionObj["heightForRowAt"] = UITableViewAutomaticDimension
+                sectionObj["cellForRowAt_Text"] = ""
+                sectionObj["cellForRowAt_Switch"] = false
+        }
+        
+        return sectionObj
     }
     
     func getDeals() -> [[String: String]] {
@@ -177,19 +212,19 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
     
     func getDistance() -> [[String: String]] {
         return [
-            ["name" : "Auto", "code": "afaghani"],
-            ["name" : "0.3 miles", "code": "482"],
-            ["name" : "1 mile", "code": "1609"],
-            ["name" : "5 miles", "code": "8046"],
-            ["name" : "20 miles", "code": "32186"],
+            ["name" : "Auto",       "distance": "0"],
+            ["name" : "0.3 miles",  "distance": "482"],
+            ["name" : "1 mile",     "distance": "1609"],
+            ["name" : "5 miles",    "distance": "8046"],
+            ["name" : "20 miles",   "distance": "32186"],
         ]
     }
     
     func getSortBy() -> [[String: String]] {
         return [
-            ["name" : "Best matched", "code": "0"],
-            ["name" : "Distance", "code": "1"],
-            ["name" : "Highest Rated", "code": "2"],
+            ["name" : "Best matched",   "yelpCode": "0"],
+            ["name" : "Distance",       "yelpCode": "1"],
+            ["name" : "Highest Rated",  "yelpCode": "2"],
         ]
     }
     
